@@ -1,0 +1,9 @@
+{
+  "name": "weweb-ferienkonto",
+  "version": "1.0.0",
+  "description": "WeWeb Coded Component – Ferienkonto-Widget (Anspruch / Bezogen / Verbleibend, Imploya)",
+  "private": true,
+  "scripts": { "build": "weweb build", "serve": "weweb serve" },
+  "devDependencies": { "@weweb/cli": "latest" },
+  "license": "UNLICENSED"
+}
