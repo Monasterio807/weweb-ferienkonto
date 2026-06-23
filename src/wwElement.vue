@@ -173,7 +173,9 @@ export default {
 
   computed: {
     baseUrl() {
-      return String((this.content && this.content.supabaseUrl) || 'https://ztvqsxdudzdyqgeylujr.supabase.co').replace(/\/+$/, '');
+      let __sbBase = String((this.content && this.content.supabaseUrl) || 'https://ztvqsxdudzdyqgeylujr.supabase.co').replace(/\/+$/, '');
+      if (/nemxnflngcfrpamkuesm/.test(String(__sbBase))) __sbBase = 'https://ztvqsxdudzdyqgeylujr.supabase.co';
+      return __sbBase;
     },
     authHeaders() {
       const key   = (this.content && this.content.apiKey) || '';
