@@ -483,7 +483,7 @@ export default {
 .fk-subtitle { margin: 2px 0 0; }
 .fk-edit-btn {
   flex: none;
-  min-height: 36px;
+  min-height: var(--hrk-tap-min);
   padding: 0 var(--hrk-space-3);
   font-size: var(--hrk-fs-small);
 }
