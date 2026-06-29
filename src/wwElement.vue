@@ -26,7 +26,7 @@
       </div>
 
       <!-- Auth-Fehler -->
-      <div v-else-if="authError" class="hrk-note hrk-note--danger fk-note">
+      <div v-else-if="authError" class="hrk-note hrk-note--danger fk-note" role="alert">
         Bitte neu anmelden.
       </div>
 
@@ -114,7 +114,7 @@
           <input id="fk-notes" class="hrk-input" type="text" maxlength="300" v-model="form.notes" />
         </div>
 
-        <div v-if="saveError" class="hrk-note hrk-note--danger fk-note">{{ saveError }}</div>
+        <div v-if="saveError" class="hrk-note hrk-note--danger fk-note" role="alert">{{ saveError }}</div>
 
         <div class="fk-edit-actions hrk-actions">
           <button type="submit" class="hrk-btn hrk-btn--primary" :disabled="saving">
