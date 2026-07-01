@@ -437,7 +437,7 @@ export default {
   cursor: pointer; text-decoration: none; transition: background .15s;
 }
 .hrk-btn:focus-visible { outline: none; box-shadow: var(--hrk-focus-ring); }
-.hrk-btn--primary   { background: var(--hrk-bordeaux); color: #fff; }
+.hrk-btn--primary   { background: var(--hrk-bordeaux); color: var(--hrk-on-primary); }
 .hrk-btn--primary:hover { background: var(--hrk-bordeaux-dark); }
 .hrk-btn--secondary { background: var(--hrk-surface); color: var(--hrk-bordeaux); border-color: var(--hrk-border-strong); }
 .hrk-btn--secondary:hover { background: var(--hrk-bordeaux-soft); }
