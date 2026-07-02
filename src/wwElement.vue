@@ -173,12 +173,12 @@ export default {
 
   computed: {
     baseUrl() {
-      let __sbBase = String((this.content && this.content.supabaseUrl) || 'https://ztvqsxdudzdyqgeylujr.supabase.co').replace(/\/+$/, '');
-      if (/nemxnflngcfrpamkuesm/.test(String(__sbBase))) __sbBase = 'https://ztvqsxdudzdyqgeylujr.supabase.co';
+      let __sbBase = String((this.content && this.content.supabaseUrl) || '').replace(/\/+$/, '');
+      if (/nemxnflngcfrpamkuesm/.test(String(__sbBase))) __sbBase = '';
       return __sbBase;
     },
     authHeaders() {
-      const key   = (this.content && 'sb_publishable_4rsRb_VB3l_45JO7sw0VSA_ODDS4CZc') || '';
+      const key   = (this.content && this.content.apiKey) || '';
       const token = String((this.content && this.content.authToken) || '');
       const bearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
       return { apikey: key, Authorization: bearer };
@@ -251,7 +251,7 @@ export default {
       this.authError = false;
       const empId = String((this.content && this.content.employeeId) || '').trim();
       if (!empId) { this.data = null; return; }
-      if (!(this.content && 'sb_publishable_4rsRb_VB3l_45JO7sw0VSA_ODDS4CZc') || !(this.content && this.content.authToken)) {
+      if (!(this.content && this.content.apiKey) || !(this.content && this.content.authToken)) {
         this.authError = true; return;
       }
 

@@ -18,7 +18,7 @@ export default {
     },
     apiKey: {
       label: { en: 'Anon / Publishable key', de: 'Anon-/Publishable-Key' },
-      type: 'Text', section: 'settings', bindable: true, defaultValue: '',
+      type: 'Text', section: 'settings', bindable: true, defaultValue: 'sb_publishable_4rsRb_VB3l_45JO7sw0VSA_ODDS4CZc',
       /* wwEditor:start */
       bindingValidation: { type: 'string', tooltip: 'Öffentlicher Anon-/Publishable-Key. NIE der service_role-Key.' },
       /* wwEditor:end */
