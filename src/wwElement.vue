@@ -177,9 +177,35 @@ export default {
       if (/nemxnflngcfrpamkuesm/.test(String(__sbBase))) __sbBase = '';
       return __sbBase;
     },
+    // Token LIVE lesen: zuerst Property (WeWeb-Binding), sonst WeWeb-Auth-Kontext,
+    // sonst persistierte Supabase-Session. Das Prop-Binding hinkt nach Login/Token-Refresh
+    // hinterher — mit stale Token liefe jeder Request in 401 (Session-1h-Bug).
+    tokenRaw() {
+      const fromProp = ((this.content && this.content.authToken) || '').toString().trim();
+      if (fromProp) return fromProp;
+      try {
+        const auth = (typeof wwLib !== 'undefined' && wwLib.globalContext && wwLib.globalContext.auth) ? wwLib.globalContext.auth : null;
+        const at = auth && auth.session && auth.session.access_token;
+        if (at) return String(at).trim();
+      } catch (e) { /* ignore */ }
+      try {
+        const win = (typeof wwLib !== 'undefined' && wwLib.getFrontWindow) ? wwLib.getFrontWindow() : (typeof window !== 'undefined' ? window : null);
+        const ls = win && win.localStorage;
+        if (ls) {
+          const ref = ((String(this.baseUrl || '').match(/https?:\/\/([a-z0-9]+)\.supabase\.co/i) || [])[1]) || 'ztvqsxdudzdyqgeylujr';
+          const raw = ls.getItem(`sb-${ref}-auth-token`);
+          if (raw) {
+            const o = JSON.parse(raw);
+            const at = (o && o.access_token) || (o && o.currentSession && o.currentSession.access_token);
+            if (at) return String(at).trim();
+          }
+        }
+      } catch (e) { /* ignore */ }
+      return '';
+    },
     authHeaders() {
       const key   = (this.content && this.content.apiKey) || '';
-      const token = String((this.content && this.content.authToken) || '');
+      const token = this.tokenRaw;
       const bearer = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
       return { apikey: key, Authorization: bearer };
     },
@@ -239,6 +265,49 @@ export default {
       finally { if (timer) clearTimeout(timer); }
     },
     emit(name, payload) { this.$emit('trigger-event', { name, event: payload || {} }); },
+    // Bei 401 das Supabase-Token via GoTrue (refresh_token) erneuern (Session-1h-Härtung).
+    async _refreshAuthToken() {
+      try {
+        const auth = (typeof wwLib !== 'undefined' && wwLib.globalContext && wwLib.globalContext.auth) ? wwLib.globalContext.auth : null;
+        const rt = auth && auth.session && auth.session.refresh_token;
+        const apiKey = (this.content && this.content.apiKey) || '';
+        if (!rt || !apiKey) return '';
+        const res = await this.fetchWithTimeout(`${this.baseUrl}/auth/v1/token?grant_type=refresh_token`, {
+          method: 'POST', headers: { apikey: apiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: rt }),
+        });
+        if (!res.ok) return '';
+        const ns = await res.json();
+        if (!ns || !ns.access_token) return '';
+        try {
+          const win = (typeof wwLib !== 'undefined' && wwLib.getFrontWindow) ? wwLib.getFrontWindow() : (typeof window !== 'undefined' ? window : null);
+          const ls = win && win.localStorage;
+          const wwSess = { access_token: ns.access_token, token_type: ns.token_type, expires_in: ns.expires_in, expires_at: ns.expires_at, refresh_token: ns.refresh_token };
+          if (ls) {
+            ls.setItem('ww-auth-session', JSON.stringify(wwSess));
+            const ref = ((String(this.baseUrl || '').match(/https?:\/\/([a-z0-9]+)\.supabase\.co/i) || [])[1]) || 'ztvqsxdudzdyqgeylujr';
+            const k = `sb-${ref}-auth-token`; const cur = JSON.parse(ls.getItem(k) || '{}');
+            ls.setItem(k, JSON.stringify(Object.assign(cur, wwSess, { user: ns.user || cur.user })));
+          }
+          if (auth && auth.session) Object.assign(auth.session, wwSess);
+        } catch (e) { /* Writeback best-effort */ }
+        return ns.access_token;
+      } catch (e) { return ''; }
+    },
+    // Zentraler authentisierter Fetch: Token live + bei 401 einmalig Refresh + Retry.
+    async authedFetch(url, options, ms) {
+      const opts = options || {};
+      const merged = Object.assign({}, opts, { headers: Object.assign({}, opts.headers || {}, this.authHeaders) });
+      let res = await this.fetchWithTimeout(url, merged, ms);
+      if (res && res.status === 401) {
+        const fresh = await this._refreshAuthToken();
+        if (fresh) {
+          const retry = Object.assign({}, opts, { headers: Object.assign({}, opts.headers || {}, this.authHeaders, { Authorization: `Bearer ${fresh}` }) });
+          res = await this.fetchWithTimeout(url, retry, ms);
+        }
+      }
+      return res;
+    },
 
     fmt(val) {
       const n = Number(val);
@@ -251,7 +320,7 @@ export default {
       this.authError = false;
       const empId = String((this.content && this.content.employeeId) || '').trim();
       if (!empId) { this.data = null; return; }
-      if (!(this.content && this.content.apiKey) || !(this.content && this.content.authToken)) {
+      if (!(this.content && this.content.apiKey) || !this.tokenRaw) {
         this.authError = true; return;
       }
 
@@ -262,7 +331,7 @@ export default {
           + `?employee_id=eq.${encodeURIComponent(empId)}`
           + `&year=eq.${this.displayYear}`
           + `&limit=1`;
-        const res = await this.fetchWithTimeout(url, { headers: { ...this.authHeaders, Accept: 'application/json' } });
+        const res = await this.authedFetch(url, { headers: { Accept: 'application/json' } });
         if (res.status === 401 || res.status === 403) { this.authError = true; return; }
         if (!res.ok) {
           // View existiert eventuell noch nicht — graceful degradation
@@ -333,21 +402,21 @@ export default {
         let res;
         if (this.creating || !this.data) {
           // Neu anlegen
-          res = await this.fetchWithTimeout(
+          res = await this.authedFetch(
             `${this.baseUrl}/rest/v1/vacation_balances`,
             {
               method: 'POST',
-              headers: { ...this.authHeaders, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+              headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
               body: JSON.stringify(payload),
             }
           );
         } else {
           // Aktualisieren
-          res = await this.fetchWithTimeout(
+          res = await this.authedFetch(
             `${this.baseUrl}/rest/v1/vacation_balances?employee_id=eq.${encodeURIComponent(empId)}&year=eq.${this.displayYear}`,
             {
               method: 'PATCH',
-              headers: { ...this.authHeaders, 'Content-Type': 'application/json', Prefer: 'return=representation' },
+              headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
               body: JSON.stringify(payload),
             }
           );
