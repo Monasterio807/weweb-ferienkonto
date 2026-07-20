@@ -173,7 +173,7 @@ export default {
 
   computed: {
     baseUrl() {
-      let __sbBase = String((this.content && this.content.supabaseUrl) || '').replace(/\/+$/, '');
+      let __sbBase = String((this.content && this.content.supabaseUrl) || 'https://ztvqsxdudzdyqgeylujr.supabase.co').replace(/\/+$/, '');
       if (/nemxnflngcfrpamkuesm/.test(String(__sbBase))) __sbBase = '';
       return __sbBase;
     },
