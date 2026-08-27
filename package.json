@@ -3,7 +3,14 @@
   "version": "1.0.0",
   "description": "WeWeb Coded Component – Ferienkonto-Widget (Anspruch / Bezogen / Verbleibend, Imploya)",
   "private": true,
-  "scripts": { "build": "weweb build", "serve": "weweb serve" },
-  "devDependencies": { "@weweb/cli": "latest" },
+  "scripts": {
+    "build": "weweb build name=weweb-ferienkonto type=wwobject",
+    "prebuild": "node -e \"require('fs').rmSync('dist/manager.js',{force:true})\"",
+    "postbuild": "node -e \"const fs=require('fs');let s;try{s=fs.statSync('dist/manager.js')}catch(e){};if(!s||s.size<1000){console.error('Bau fehlgeschlagen: dist/manager.js wurde nicht geschrieben.');process.exit(1)}\"",
+    "serve": "weweb serve"
+  },
+  "devDependencies": {
+    "@weweb/cli": "latest"
+  },
   "license": "UNLICENSED"
 }
