@@ -434,7 +434,7 @@ export default {
         this.emit('saved', { manually_used: payload.manually_used });
         await this.load(); // Ansicht aktualisieren
       } catch (e) {
-        this.saveError = 'Netzwerkfehler. Versuch es gleich nochmal.';
+        this.saveError = 'Die Verbindung hat nicht geklappt. Versuche es gleich nochmal.';
       } finally {
         this.saving = false;
       }
