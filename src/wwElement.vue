@@ -30,6 +30,14 @@
         Bitte neu anmelden.
       </div>
 
+      <!-- Ladefehler (nie als «kein Konto» darstellen) -->
+      <div v-else-if="loadError" class="hrk-state hrk-state--mini">
+        <div class="hrk-note hrk-note--danger fk-note" role="alert">
+          Das Ferienkonto konnte nicht geladen werden. Bitte versuche es nochmal.
+        </div>
+        <button type="button" class="hrk-btn hrk-btn--secondary fk-retry-btn" @click="load">Erneut versuchen</button>
+      </div>
+
       <!-- Noch kein Ferienkonto -->
       <div v-else-if="!data && !editMode" class="hrk-state hrk-state--mini">
         <p class="hrk-muted">Für diesen Mitarbeiter / dieses Jahr ist noch kein Ferienkonto angelegt.</p>
@@ -156,6 +164,7 @@ export default {
     return {
       loading:   false,
       authError: false,
+      loadError: false,      // Laden fehlgeschlagen (Server/Netz): kein Leerzustand, kein «Anlegen»
       data:      null,       // Zeile aus vacation_summary
       editMode:  false,
       creating:  false,      // true wenn neues Konto angelegt wird
@@ -318,6 +327,7 @@ export default {
     // ── Laden ────────────────────────────────────────────────────
     async load() {
       this.authError = false;
+      this.loadError = false;
       const empId = String((this.content && this.content.employeeId) || '').trim();
       if (!empId) { this.data = null; return; }
       if (!(this.content && this.content.apiKey) || !this.tokenRaw) {
@@ -334,7 +344,7 @@ export default {
         const res = await this.authedFetch(url, { headers: { Accept: 'application/json' } });
         if (res.status === 401 || res.status === 403) { this.authError = true; return; }
         if (!res.ok) {
-          // View existiert eventuell noch nicht — graceful degradation
+          this.loadError = true;
           this.emit('error', { reason: 'load' });
           return;
         }
@@ -342,6 +352,7 @@ export default {
         this.data = (Array.isArray(rows) && rows.length) ? rows[0] : null;
         if (this.data) this.emit('loaded', { remaining: Number(this.data.remaining) || 0 });
       } catch (e) {
+        this.loadError = true;
         this.emit('error', { reason: 'network' });
       } finally {
         this.loading = false;
@@ -422,11 +433,26 @@ export default {
           );
         }
 
-        if (res.status === 401 || res.status === 403) { this.authError = true; return; }
+        if (res.status === 401) { this.authError = true; return; }
+        if (res.status === 403) {
+          // Keine Berechtigung ist keine abgelaufene Anmeldung: Formular und Eingaben bleiben stehen.
+          this.saveError = 'Dafür hast du keine Berechtigung. Deine Eingaben bleiben im Formular stehen.';
+          this.emit('error', { reason: 'forbidden' });
+          return;
+        }
         if (!res.ok) {
           this.saveError = 'Speichern fehlgeschlagen. Bitte nochmal versuchen.';
           this.emit('error', { reason: 'save' });
           return;
+        }
+        if (!(this.creating || !this.data)) {
+          // PATCH ohne getroffene Zeile (RLS filtert, Zeile weg) antwortet 200 mit []: nicht als Erfolg melden.
+          const rows = await res.json().catch(() => null);
+          if (!Array.isArray(rows) || rows.length === 0) {
+            this.saveError = 'Die Änderung wurde nicht gespeichert. Lade die Seite neu und versuche es nochmal.';
+            this.emit('error', { reason: 'save_no_rows' });
+            return;
+          }
         }
 
         this.editMode = false;
