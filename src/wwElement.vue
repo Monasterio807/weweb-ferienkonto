@@ -140,7 +140,7 @@
 
 <script>
 /**
- * WeWeb Coded Component — Ferienkonto-Widget (Imploya)
+ * WeWeb Coded Component — Ferienkonto-Widget (imploya)
  *
  * Zeigt pro Mitarbeiter/Jahr: Anspruch, bezogene Tage/Stunden,
  * Verbleibendes und einen Fortschrittsbalken. Unterstützt Edit-Modus
