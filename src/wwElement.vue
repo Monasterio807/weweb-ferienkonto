@@ -472,9 +472,9 @@ export default {
 <style scoped>
 /* ── Design-Tokens ── */
 :root, .hrk-root {
-  --hrk-bordeaux:       #7B2D3B;
-  --hrk-bordeaux-dark:  #5E2129;
-  --hrk-bordeaux-soft:  #F3E7E9;
+  --hrk-bordeaux:       #72323C;
+  --hrk-bordeaux-dark:  #5A2630;
+  --hrk-bordeaux-soft:  #F1E7E9;
   --hrk-creme:          #FBF8F3;
   --hrk-anthrazit:      #2B2B2B;
   --hrk-surface:        #FFFFFF;
